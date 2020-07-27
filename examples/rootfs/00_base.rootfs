@@ -1,0 +1,29 @@
+FROM alpine:latest
+FILESYSTEM ext2
+
+# Configure lo interface.
+RUN printf 'auto lo\niface lo inet loopback\n' > /etc/network/interfaces
+
+# Update packages.
+RUN apk -U upgrade
+
+# Install OpenRC.
+RUN apk add openrc
+
+# Set up a login terminal on the serial console (ttyS0).
+RUN sed -i -e 's/#\(ttyS0::respawn:.*\)/\1/' /etc/inittab
+RUN echo ttyS0 > /etc/securetty
+
+# Make other services not start the 'modules' init script, which does not work due to the lack of kernel modules within the rootfs.
+RUN echo rc_want="!modules" >> /etc/rc.conf
+
+# Mount special file systems on boot.
+RUN rc-update add devfs boot
+RUN rc-update add procfs boot
+RUN rc-update add sysfs boot
+
+# Make /etc/resolv.conf link to /etc/net/pnp, which contains the nameserver(s) from the kernel command line.
+RUN ln -fs /proc/net/pnp /etc/resolv.conf
+
+# Clean up temporary files.
+RUN rm -f -- /var/cache/apk/*

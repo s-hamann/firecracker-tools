@@ -1,0 +1,6 @@
+*.img
+*.json
+!examples/microvm/*.json
+cache
+chroot
+vmlinux-*

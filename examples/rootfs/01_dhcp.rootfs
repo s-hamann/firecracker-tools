@@ -1,0 +1,3 @@
+FROM 00_base.img
+RUN printf 'auto eth0\niface eth0 inet dhcp\n' >> /etc/network/interfaces
+RUN rc-update add networking default
