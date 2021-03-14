@@ -85,7 +85,7 @@ build-rootfs.sh
 ---------------
 
 This script builds one or more root filesystem images that can be used with Firecracker.
-Refer to `build-kernel.sh --help` for a list of parameters.
+Refer to `build-rootfs.sh --help` for a list of parameters.
 All parameters are optional.
 When called without parameters, `build-rootfs.sh` builds all rootfs images described by `.rootfs` files in the current directory and places the resulting images in the current directory.
 To build only specific images, specify the respective `.rootfs` files on the command line.
