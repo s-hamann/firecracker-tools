@@ -49,6 +49,8 @@ parser.add_argument('-u', '--user', default='firecracker',
                     help='system user account to run Firecracker as')
 parser.add_argument('-n', '--node', type=int, default=0, help='NUMA node to assign the VM to')
 parser.add_argument('--netns', help='path to the network namespace this microVM should join')
+parser.add_argument('--daemonize', action='store_true', default=False,
+                    help='run the VM in a background process')
 args = parser.parse_args()
 
 if not args.config.is_file():
@@ -206,6 +208,8 @@ jailer_cmd = [args.jailer, '--exec-file', args.firecracker, '--node', str(args.n
               '--chroot-base-dir', args.chroot_base_dir, '--uid', str(uid), '--gid', str(gid)]
 if args.netns:
     jailer_cmd += ['--netns', args.netns]
+if args.daemonize:
+    jailer_cmd += ['--daemonize']
 jailer_cmd += ['--', '--config-file', 'config.json']
 
 r = subprocess.run(jailer_cmd)
