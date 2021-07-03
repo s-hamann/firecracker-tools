@@ -1,5 +1,7 @@
 #!/bin/bash
 
+readonly default_cache_dir="${XDG_CACHE_HOME:-${HOME}/.cache}/firecracker"
+
 function die() {
     # usage: die $code $message [...]
     # Prints $message to stderr and exits with the given exit $code.

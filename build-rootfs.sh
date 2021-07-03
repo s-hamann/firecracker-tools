@@ -7,8 +7,6 @@ readonly E_CMDLINE=1
 readonly E_IDMAP=2
 readonly E_BUILD=3
 
-cache_dir="$(dirname -- "$0")/cache"
-
 # Defaults, can be overridden per image.
 rootfs_type='ext2'
 rootfs_max_size=128
@@ -51,6 +49,7 @@ if [[ "${UID}" -ne 0 ]]; then
 fi
 
 function usage() {
+# shellcheck disable=SC2154
 cat - << EOH
 Usage: $0 [options] [--] [files]
  Builds one or more root filesystems for use with Firecracker.
@@ -61,6 +60,10 @@ Usage: $0 [options] [--] [files]
    Run an interactive shell (/bin/sh) in the rootfs just after running all
    commands to set it up. This can be used for debugging or doing manual
    changes.
+ --cache-path
+   Path to the cache directory where downloaded files are stored. The directory
+   is created if it does not exist.
+   Defaults to '${default_cache_dir}'.
 EOH
 }
 
@@ -362,6 +365,7 @@ function cleanup() {
 }
 
 interactive=false
+cache_dir="${default_cache_dir}"
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -h|--help)
@@ -370,6 +374,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         --interactive)
             interactive=true
+            ;;
+        --cache-path|--cache-path=*)
+            if [[ "$1" == "${1%=*}" ]]; then
+                cache_dir="$2"
+                shift
+            else
+                cache_dir="${1#*=}"
+            fi
             ;;
         --)
             # End of command line options.

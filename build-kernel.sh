@@ -12,6 +12,7 @@ readonly E_MAKE=6
 readonly E_INCONSISTENCY=7
 
 function usage() {
+# shellcheck disable=SC2154
 cat - << EOH
 Usage: $0 [options]
  Builds a kernel image for use with Firecracker.
@@ -45,6 +46,10 @@ Usage: $0 [options]
    Force building a new kernel. If this option is not given, the image is not
    built if the output file exists, matches the kernel version and is newer
    than the config file.
+ --cache-path
+   Path to the cache directory where downloaded files are stored. The directory
+   is created if it does not exist.
+   Defaults to '${default_cache_dir}'.
 EOH
 }
 
@@ -63,6 +68,7 @@ kernel_version='latest stable version'
 menuconfig=false
 force_build=false
 patches=()
+cache_dir="${default_cache_dir}"
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -h|--help)
@@ -101,6 +107,14 @@ while [[ $# -gt 0 ]]; do
                 shift
             else
                 patches+=("${1#*=}")
+            fi
+            ;;
+        --cache-path|--cache-path=*)
+            if [[ "$1" == "${1%=*}" ]]; then
+                cache_dir="$2"
+                shift
+            else
+                cache_dir="${1#*=}"
             fi
             ;;
         --version|--version=*)
@@ -158,7 +172,6 @@ if [[ -z "${MAKEOPTS}" ]]; then
         MAKEOPTS="-j$(nproc) -l$(nproc)"
     fi
 fi
-cache_dir="$(dirname -- "$0")/cache"
 mkdir -p -- "${cache_dir}"
 
 # Download the kernel source code.
