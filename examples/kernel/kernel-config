@@ -147,6 +147,7 @@ CONFIG_SECCOMP_FILTER=y
 # CONFIG_THERMAL is not set
 # CONFIG_RC_CORE is not set
 # CONFIG_MEDIA_SUPPORT is not set
+# CONFIG_MEDIA_CEC_SUPPORT is not set
 # CONFIG_DRM is not set
 # CONFIG_FB is not set
 # CONFIG_SOUND is not set
@@ -242,6 +243,7 @@ CONFIG_BLK_DEV_LOOP_MIN_COUNT=1
 # CONFIG_QUOTA is not set
 # CONFIG_MSDOS_FS is not set
 # CONFIG_VFAT_FS is not set
+# CONFIG_EXFAT_FS is not set
 # CONFIG_NTFS_FS is not set
 # CONFIG_DNOTIFY is not set
 # CONFIG_SECURITY_SELINUX is not set
@@ -251,7 +253,7 @@ CONFIG_BLK_DEV_LOOP_MIN_COUNT=1
 # CONFIG_CRC_CCITT is not set
 # CONFIG_EFI is not set
 
-# Debugging
+# Debugging and testing
 # CONFIG_DEBUG_KERNEL is not set
 # CONFIG_CIFS_DEBUG is not set
 # CONFIG_CRASH_DUMP is not set
@@ -265,3 +267,7 @@ CONFIG_BLK_DEV_LOOP_MIN_COUNT=1
 # CONFIG_EARLY_PRINTK_DBGP is not set
 # CONFIG_PROVIDE_OHCI1394_DMA_INIT is not set
 # CONFIG_PNP_DEBUG_MESSAGES is not set
+# CONFIG_KUNIT is not set
+# CONFIG_KASAN is not set
+# CONFIG_KCOV is not set
+# CONFIG_MEMTEST is not set
