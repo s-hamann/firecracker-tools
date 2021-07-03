@@ -15,7 +15,7 @@ function busybox_setup() {
     # usage: busybox_setup $dir
     # If BusyBox is installed, creates $dir, install symlinks to all applets in
     # $dir and appends $dir to $PATH.
-    # This means that regular system tools are prefered over BusyBox
+    # This means that regular system tools are preferred over BusyBox
     # implementations, but BusyBox provides a fallback for missing tools.
     local busybox_bindir="$1"
     if ! command -v busybox >&/dev/null; then
