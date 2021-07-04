@@ -77,7 +77,8 @@ function verify_signature() {
                 # $key seems to be an email address, use wkd to get it.
                 "${gpg}" --homedir="${keyring}" --auto-key-locate wkd --locate-keys "${key}" || { printf 'Error: Could not import public PGP key for %s\n' "${key}" >&2; exit 1; }
             else
-                # $key seems to be a key ID, use the default key server to get it.
+                # $key seems to be a key ID, use the Ubuntu key server to get it.
+                echo 'keyserver hkps://keyserver.ubuntu.com' > "${keyring}/dirmngr.conf"
                 "${gpg}" --homedir="${keyring}" --recv-key "${key}" || { printf 'Error: Could not import public PGP key %s\n' "${key}" >&2; exit 1; }
             fi
         done
