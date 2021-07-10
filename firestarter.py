@@ -43,6 +43,12 @@ parser.add_argument('config', type=Path,
                     help='path to a config file in JSON format that describes the VM')
 parser.add_argument('-d', '--chroot-base-dir', type=Path, default=Path('chroot'),
                     help='base of the Firecracker chroot directory')
+parser.add_argument('-k', '--kernel-base-dir', type=Path,
+                    help='base path for kernel files, i.e. relative paths in VM config are '
+                    'relative to this directory (default is the config file directory)')
+parser.add_argument('-i', '--image-base-dir', type=Path,
+                    help='base path for image files, i.e. relative paths in VM config are '
+                    'relative to this directory (default is the config file directory)')
 parser.add_argument('-f', '--firecracker', type=Path, help='path to the firecracker binary')
 parser.add_argument('-j', '--jailer', type=Path, help='path to the jailer binary')
 parser.add_argument('-u', '--user', default='firecracker',
@@ -55,6 +61,12 @@ args = parser.parse_args()
 
 if not args.config.is_file():
     raise FileNotFoundError('Config file {} not found.'.format(args.config))
+
+if not args.kernel_base_dir:
+    args.kernel_base_dir = args.config.resolve().parent
+
+if not args.image_base_dir:
+    args.image_base_dir = args.config.resolve().parent
 
 if not args.firecracker:
     try:
@@ -116,7 +128,7 @@ if kernel.is_absolute():
     kernel_glob_base = Path('/')
 else:
     kernel_glob = str(kernel)
-    kernel_glob_base = args.config.resolve().parent
+    kernel_glob_base = args.kernel_base_dir
 try:
     glob_order = config['boot-source']['glob_order']
     del config['boot-source']['glob_order']
@@ -140,7 +152,7 @@ for drive in config['drives']:
         p_glob_base = Path('/')
     else:
         p_glob = str(p)
-        p_glob_base = args.config.resolve().parent
+        p_glob_base = args.image_base_dir
     try:
         glob_order = drive['glob_order']
         del drive['glob_order']

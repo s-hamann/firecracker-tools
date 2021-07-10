@@ -227,7 +227,7 @@ Refer to `firestarter.py --help` for a list.
 The file format is mostly identical to the file format accepted by Firecracker with the following extensions:
 
 * The `boot-source` section is not mandatory. If it is not present, a sensible default (i.e. the latest kernel image as created by `build-kernel.sh`) is assumed.
-* Paths to the kernel and filesystems simply refer to files on the host. `firestarter.py` handles rewriting these paths for use in the chroot. Relative paths are considered to be relative to the location of the config file.
+* Paths to the kernel and filesystems simply refer to files on the host. `firestarter.py` handles rewriting these paths for use in the chroot. Relative paths are considered to be relative to the location of the config file (or a path specified as a parameter to `firestarter.py`).
 * Paths to the kernel and filesystems support globbing. If multiple files match a globbing expression the most recently modified or (if the `packaging` module is available) the one containing the highest version number is chosen.
 * The `boot-source` and `drives` sections support the key `glob_order` to override the default choice of algorithm. Valid values are `most_recent` and `latest_version` (if available).
 * The `network-interfaces` section has limited support for IP address configuration:
