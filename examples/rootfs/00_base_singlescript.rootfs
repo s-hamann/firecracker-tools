@@ -1,0 +1,28 @@
+FROM alpine:latest
+FILESYSTEM ext2
+
+# Configure lo interface.
+RUN printf 'auto lo\niface lo inet loopback\n' > /etc/network/interfaces
+
+# Update packages.
+RUN apk -U upgrade
+
+RUN echo 'proc /proc proc nosuid 0 0' > /etc/fstab
+RUN echo 'sys /sys sysfs nosuid 0 0' >> /etc/fstab
+RUN echo 'tmpfs /tmp tmpfs noatime,nodev 0 0' >> /etc/fstab
+
+RUN echo '# /etc/inittab' > /etc/inittab
+RUN echo '::sysinit:/bin/mount -a' >> /etc/inittab
+
+# Run /etc/rc.local and shut down.
+RUN echo 'ttyS0::wait:/bin/sh /etc/rc.local' >> /etc/inittab
+RUN echo 'ttyS0::once:/sbin/reboot' >> /etc/inittab
+
+RUN echo '::ctrlaltdel:/sbin/reboot' >> /etc/inittab
+RUN echo '::shutdown:/bin/umount -a -r' >> /etc/inittab
+
+# Make /etc/resolv.conf link to /etc/net/pnp, which contains the nameserver(s) from the kernel command line.
+RUN ln -fs /proc/net/pnp /etc/resolv.conf
+
+# Clean up temporary files.
+RUN rm -f -- /var/cache/apk/*
