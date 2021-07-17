@@ -268,7 +268,7 @@ function build_image() {
                     die 2 "${file}: Error: ${cmd} expects at least 1 argument"
                 fi
                 if ! mountpoint --quiet "${rootfs_mount}"; then
-                    die 2 "${file}: Error: ${cmd} can not apprear before FROM"
+                    die 2 "${file}: Error: ${cmd} can not appear before FROM"
                 fi
                 run_in_rootfs "${line#${cmd} }"
                 ;;
@@ -277,7 +277,7 @@ function build_image() {
                     die 2 "${file}: Error: ${cmd} expects at least 2 arguments"
                 fi
                 if ! mountpoint --quiet "${rootfs_mount}"; then
-                    die 2 "${file}: Error: ${cmd} can not apprear before FROM"
+                    die 2 "${file}: Error: ${cmd} can not appear before FROM"
                 fi
                 (cd -- "$(dirname -- "${file}")" && cp -dR -- "${argv[@]:0:((${argc}-1))}" "${rootfs_mount}/${argv[-1]}")
                 ;;
