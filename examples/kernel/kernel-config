@@ -108,6 +108,7 @@ CONFIG_SECCOMP_FILTER=y
 # CONFIG_PM is not set
 # CONFIG_PCI is not set
 # CONFIG_NVME_FC is not set
+# CONFIG_NVME_TCP is not set
 # CONFIG_IDE is not set
 # CONFIG_RAID_ATTRS is not set
 # CONFIG_SCSI is not set

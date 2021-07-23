@@ -1,10 +1,10 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/x86 5.10.31 Kernel Configuration
+# Linux/x86 5.10.52 Kernel Configuration
 #
-CONFIG_CC_VERSION_TEXT="gcc (Gentoo Hardened 10.2.0-r5 p6) 10.2.0"
+CONFIG_CC_VERSION_TEXT="gcc (Gentoo Hardened 10.3.0-r2 p3) 10.3.0"
 CONFIG_CC_IS_GCC=y
-CONFIG_GCC_VERSION=100200
+CONFIG_GCC_VERSION=100300
 CONFIG_LD_VERSION=235020000
 CONFIG_CLANG_VERSION=0
 CONFIG_LLD_VERSION=0
@@ -833,6 +833,7 @@ CONFIG_VIRTIO_BLK=y
 # NVME Support
 #
 # CONFIG_NVME_FC is not set
+# CONFIG_NVME_TCP is not set
 # end of NVME Support
 
 #
