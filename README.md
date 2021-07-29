@@ -104,6 +104,8 @@ These files use a simple description language that is documented in the followin
 
 Empty lines and lines starting with `#` are ignored.
 All other lines need to start with a command, followed by a number of parameters specific to the command.
+Parameters are separated by whitespace.
+To include a whitespace in a parameter value, it needs to be escaped by `\`, e.g. `\ `. To include a literal `\ ` in a parameter, use `\\ `.
 The following commands are implemented:
 
 #### FROM

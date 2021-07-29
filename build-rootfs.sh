@@ -121,7 +121,15 @@ function build_image() {
         fi
         local cmd="${line%% *}"
         local -a argv
-        mapfile -t argv < <(awk 'BEGIN{FPAT = "([^[:space:]]+)|(\"[^\"]+\")"}{for(i=1; i<=NF; i++) print $i}' <<< "${line#${cmd}}")
+        mapfile -t argv < <(awk \
+            'BEGIN{
+                FPAT = "([^[:space:]]*(\\\\[[:space:]])?)+"
+            }
+            {
+                for(i=1; i<=NF; i++) {
+                    print gensub(/\\([[:space:]])/, "\\1", "g", $i)
+                }
+            }' <<< "${line#${cmd} }")
         local argc="${#argv[@]}"
         case "${cmd}" in
             FROM)
