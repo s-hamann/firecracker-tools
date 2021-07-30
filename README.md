@@ -199,7 +199,11 @@ But a second `FROM` may appear after `RUN`.
 
 Copy one or more files from the host to the rootfs image.
 Takes at least two arguments.
+
 All but the last argument are files or directories on the host (relative paths are relative to the location of the `.rootfs` file).
+These arguments can be patterns as described in the section 'Pathname Expansion' in the bash documentation.
+To match `*`, `?` or `[` literally, these characters need to be enclosed in `[]`, e.g. `[*]`.
+
 The last argument denotes a path in the root filesystem and is the target of the copy operation (relative paths are relative to `/` in the rootfs).
 The file ownership is set to `root` in the rootfs.
 Example:

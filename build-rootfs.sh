@@ -287,7 +287,8 @@ function build_image() {
                 if ! mountpoint --quiet "${rootfs_mount}"; then
                     die 2 "${file}: Error: ${cmd} can not appear before FROM"
                 fi
-                (cd -- "$(dirname -- "${file}")" && cp -dR -- "${argv[@]:0:((${argc}-1))}" "${rootfs_mount}/${argv[-1]}")
+                # shellcheck disable=SC2068
+                (shopt -s nullglob; IFS=; cd -- "$(dirname -- "${file}")" && cp -dR -- ${argv[@]:0:((${argc}-1))} "${rootfs_mount}/${argv[-1]}")
                 ;;
             *)
                 die 2 "${file}: Error: Invalid directive ${cmd}"
