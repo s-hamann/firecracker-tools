@@ -169,10 +169,10 @@ function build_image() {
                             alpine)
                                 if [[ "${rootfs_base_version}" == 'latest' ]]; then
                                     # Get latest stable version.
-                                    rootfs_base_version="$(curl --silent "http://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/$(uname -m)/" | grep -Po '(?<=alpine-minirootfs-)[0-9]+\.[0-9]+\.[0-9]+(?!_rc[0-9])' | sort -Vu | tail -n1)"
+                                    rootfs_base_version="$(curl --silent "https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/$(uname -m)/" | grep -Po '(?<=alpine-minirootfs-)[0-9]+\.[0-9]+\.[0-9]+(?!_rc[0-9])' | sort -Vu | tail -n1)"
                                 fi
-                                rootfs_url="http://dl-cdn.alpinelinux.org/alpine/v${rootfs_base_version%.*}/releases/$(uname -m)/alpine-minirootfs-${rootfs_base_version}-$(uname -m).tar.gz"
-                                signature_url="http://dl-cdn.alpinelinux.org/alpine/v${rootfs_base_version%.*}/releases/$(uname -m)/alpine-minirootfs-${rootfs_base_version}-$(uname -m).tar.gz.asc"
+                                rootfs_url="https://dl-cdn.alpinelinux.org/alpine/v${rootfs_base_version%.*}/releases/$(uname -m)/alpine-minirootfs-${rootfs_base_version}-$(uname -m).tar.gz"
+                                signature_url="https://dl-cdn.alpinelinux.org/alpine/v${rootfs_base_version%.*}/releases/$(uname -m)/alpine-minirootfs-${rootfs_base_version}-$(uname -m).tar.gz.asc"
                                 signature_keys=('0482 D840 22F5 2DF1 C4E7 CD43 293A CD09 07D9 495A')
                                 ;;
                             *)
