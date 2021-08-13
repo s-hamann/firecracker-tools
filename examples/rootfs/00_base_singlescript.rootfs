@@ -13,6 +13,7 @@ RUN echo 'tmpfs /tmp tmpfs noatime,nodev 0 0' >> /etc/fstab
 
 RUN echo '# /etc/inittab' > /etc/inittab
 RUN echo '::sysinit:/bin/mount -a' >> /etc/inittab
+RUN echo '::sysinit:/bin/ln -s /proc/self/fd /dev/fd' >> /etc/inittab
 
 # Run /etc/rc.local and shut down.
 RUN echo 'ttyS0::wait:/bin/sh /etc/rc.local' >> /etc/inittab
