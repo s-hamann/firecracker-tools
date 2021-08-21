@@ -96,6 +96,12 @@ Having the resulting image file available is *not* sufficient.
 Running this script as `root` is neither required nor recommended.
 `build-rootfs.sh` automatically establishes namespace confinement.
 It uses an environment similar to a container when running commands "in" the rootfs image, such as installing software using the rootfs image's package manager.
+This means, however, that subuids and subgids need to be set up for the user running `build-rootfs.sh`.
+To allocate a range of 65536 subuids and subgids run the following command (or similar):
+```sh
+usermod --add-subuid 1065536-1131071 --add-subgids 1065536-1131071 <user>
+```
+It is important to ensure that the ranges allocated to different users do not overlap!
 
 ### .rootfs File Format
 
