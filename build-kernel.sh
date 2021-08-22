@@ -90,7 +90,7 @@ while [[ $# -gt 0 ]]; do
                 kernel_config_file="${1#*=}"
             fi
             if [[ ! -f "${kernel_config_file}" || ! -r "${kernel_config_file}" ]]; then
-                die ${E_CMDLINE} "Error: Could not read kernel config file ${kernel_config_file}"
+                die "${E_CMDLINE}" "Error: Could not read kernel config file ${kernel_config_file}"
             fi
             ;;
         -o|--output|--output=*)
@@ -127,7 +127,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         *)
             usage >&2
-            exit ${E_CMDLINE}
+            exit "${E_CMDLINE}"
             ;;
     esac
     shift
@@ -204,7 +204,7 @@ if ! verify_signature --key torvalds@kernel.org --key gregkh@kernel.org "${kerne
 fi
 
 # Extract the kernel source to the build directory.
-tar -C "${tmpdir}/build" -xf "${kernel_uncompressed_file}" --strip-components=1 || die ${E_EXTRACT} 'Error: Could not extract kernel source code.'
+tar -C "${tmpdir}/build" -xf "${kernel_uncompressed_file}" --strip-components=1 || die "${E_EXTRACT}" 'Error: Could not extract kernel source code.'
 rm -f -- "${kernel_uncompressed_file}"
 
 # Copy or extract the patches to the patches directory.
@@ -252,7 +252,7 @@ if "${menuconfig}"; then
 fi
 if [[ -n "${new_opts}" ]]; then
     if [[ ! -t 0 ]]; then
-        die ${E_CONFIG} 'Error: New kernel config options available. Please run interactively.'
+        die "${E_CONFIG}" 'Error: New kernel config options available. Please run interactively.'
     else
         make oldconfig
         tmpfile="$(mktemp -p "${TMPDIR:-/tmp}" "kernel-config-${kernel_version}.XXXXXX")"
@@ -263,6 +263,6 @@ fi
 
 # Compile the kernel.
 # shellcheck disable=SC2086
-make ${MAKEOPTS} vmlinux || die ${E_MAKE} 'Error building kernel'
+make ${MAKEOPTS} vmlinux || die "${E_MAKE}" 'Error building kernel'
 popd || die "${E_INCONSISTENCY}" 'Error: Working directory disappeared.'
 cp -a "${tmpdir}/build/vmlinux" "${output_file}"

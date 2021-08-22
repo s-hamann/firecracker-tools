@@ -45,7 +45,7 @@ if [[ "${UID}" -ne 0 ]]; then
     r="$?"
     # Done. End the infinite sleep and exit with the return code of the child from the namespace.
     kill -9 "${main_pid}"
-    exit $r
+    exit "${r}"
 fi
 
 function usage() {
@@ -400,7 +400,7 @@ while [[ $# -gt 0 ]]; do
         -*)
             printf 'Error: Unknown option %s\n' "$1" >&2
             usage >&2
-            exit ${E_CMDLINE}
+            exit "${E_CMDLINE}"
             ;;
         *)
             # First non-option argument -> end of command line options.
