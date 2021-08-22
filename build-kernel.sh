@@ -154,6 +154,9 @@ if [[ -z "${kernel_config_file}" ]]; then
             break
         fi
     done
+    if [[ -z "${kernel_config_file}" ]]; then
+        die "${E_CONFIG}" "Error: No kernel configuration file found for kernel version ${kernel_version}"
+    fi
 fi
 
 if [[ -z "${output_file}" ]]; then
