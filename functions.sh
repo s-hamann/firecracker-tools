@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# shellcheck disable=SC2034
 readonly default_cache_dir="${XDG_CACHE_HOME:-${HOME}/.cache}/firecracker"
 
 function die() {
