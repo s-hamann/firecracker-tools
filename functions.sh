@@ -14,7 +14,7 @@ function die() {
 
 function busybox_setup() {
     # usage: busybox_setup $dir
-    # If BusyBox is installed, creates $dir, install symlinks to all applets in
+    # If BusyBox is installed, creates $dir, installs symlinks to all applets in
     # $dir and appends $dir to $PATH.
     # This means that regular system tools are preferred over BusyBox
     # implementations, but BusyBox provides a fallback for missing tools.
