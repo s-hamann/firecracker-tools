@@ -50,10 +50,15 @@ Usage: $0 [options]
    Path to the cache directory where downloaded files are stored. The directory
    is created if it does not exist.
    Defaults to '${default_cache_dir}'.
+ -q, --quiet
+   Give less console output. Use multiple times to be more quiet.
+ -v, --verbose
+   Give more console output. Use multiple times to be more verbose.
 EOH
 }
 
 function cleanup() {
+    debug "Cleaning up temporary directories."
     if [[ -n "${tmpdir}" ]]; then
         [[ -d "${tmpdir}/build" ]] && rm -rf -- "${tmpdir}/build"
         [[ -d "${tmpdir}/patches" ]] && rm -rf -- "${tmpdir}/patches"
@@ -125,6 +130,12 @@ while [[ $# -gt 0 ]]; do
                 kernel_version="${1#*=}"
             fi
             ;;
+        -q|--quiet)
+            (( log_level-- ))
+            ;;
+        -v|--verbose)
+            (( log_level++ ))
+            ;;
         *)
             usage >&2
             exit "${E_CMDLINE}"
@@ -133,12 +144,17 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
+log_level_setup
+
 # Get the latest kernel version.
 if [[ "${kernel_version}" != *.*.* ]]; then
+    debug "Getting latest kernel version for '${kernel_version}'."
     regex="${kernel_version}"
     kernel_version="$(curl --silent --location https://www.kernel.org/finger_banner | grep -Po "${regex}.*:\s*\K([0-9]+\.[0-9]+\.[0-9]+)" | head -n1)"
     if [[ "${kernel_version}" != *.*.* ]]; then
         die "${E_CMDLINE}" "Error: Could not get latest kernel version from regex '${regex}'."
+    else
+        info "Latest kernel version matching '${regex}' is ${kernel_version}."
     fi
     unset regex
 fi
@@ -150,6 +166,7 @@ kernel_version_base="${kernel_version%.*}"
 if [[ -z "${kernel_config_file}" ]]; then
     for file in "kernel-config-${kernel_version}" "kernel-config-${kernel_version_base}" kernel-config; do
         if [[ -e "${file}" ]]; then
+            debug "Using ${file} as kernel configuration file."
             kernel_config_file="${file}"
             break
         fi
@@ -164,16 +181,20 @@ if [[ -z "${output_file}" ]]; then
 fi
 
 if ! ${force_build} && [[ -e "${output_file}" && "${output_file}" -nt "${kernel_config_file}" ]] && strings -n 20 "${output_file}" | grep -qFw "Linux version ${kernel_version} "; then
-    printf 'Output file %s for kernel version %s exists and is newer than the config file %s. Nothing to do.\nUse --force to force rebuilding.\n' "${output_file}" "${kernel_version}" "${kernel_config_file}"
+    info "Output file ${output_file} for kernel version ${kernel_version} exists and is newer than the config file ${kernel_config_file}. Nothing to do.\nUse --force to force rebuilding.\n"
     exit
 fi
 
 if [[ -z "${MAKEOPTS}" ]]; then
     if command -v portageq &>/dev/null; then
         MAKEOPTS="$(portageq envvar MAKEOPTS)"
+        debug "Make options (from portage): ${MAKEOPTS}"
     else
         MAKEOPTS="-j$(nproc) -l$(nproc)"
+        debug "Make options (default): ${MAKEOPTS}"
     fi
+else
+    debug "Make options: ${MAKEOPTS}"
 fi
 mkdir -p -- "${cache_dir}"
 
@@ -209,6 +230,7 @@ rm -f -- "${kernel_uncompressed_file}"
 
 # Copy or extract the patches to the patches directory.
 for patch in "${patches[@]}"; do
+    debug "Preparing kernel patch ${patch}"
     case "${patch}" in
         *.patch|*.diff)
             cp "${patch}" "${tmpdir}/patches/" || die "${E_PATCH}" "Error: Could not copy patch ${patch}"
@@ -237,18 +259,19 @@ done
 # Apply all patches.
 shopt -s nullglob
 for patch in "${tmpdir}"/patches/*; do
-    (cd -- "${tmpdir}/build" && patch -p 1 -i "${patch}" >/dev/null) || die "${E_PATCH}" "Error: Could not patch kernel source code. Failing patch was: ${patch}"
+    debug "Applying kernel patch ${patch##*/}."
+    (cd -- "${tmpdir}/build" && patch ${quiet_at[WARN]:+--quiet} -p 1 -i "${patch}" >/dev/null) || die "${E_PATCH}" "Error: Could not patch kernel source code. Failing patch was: ${patch}"
 done
 
 # Configure the kernel.
 cp -- "${kernel_config_file}" "${tmpdir}/build/.config"
-pushd "${tmpdir}/build" || die "${E_INCONSISTENCY}" 'Error: Temporary build directory disappeared.'
+pushd "${tmpdir}/build" >/dev/null || die "${E_INCONSISTENCY}" 'Error: Temporary build directory disappeared.'
 new_opts="$(make -s listnewconfig)"
 if "${menuconfig}"; then
     make menuconfig
     tmpfile="$(mktemp -p "${TMPDIR:-/tmp}" "kernel-config-${kernel_version}.XXXXXX")"
     cp -a .config "${tmpfile}"
-    printf 'Config file was updated. The new config is saved to %s\n' "${tmpfile}" >&2
+    info "Config file was updated. The new config is saved to ${tmpfile}"
 fi
 if [[ -n "${new_opts}" ]]; then
     if [[ ! -t 0 ]]; then
@@ -257,12 +280,13 @@ if [[ -n "${new_opts}" ]]; then
         make oldconfig
         tmpfile="$(mktemp -p "${TMPDIR:-/tmp}" "kernel-config-${kernel_version}.XXXXXX")"
         cp -a .config "${tmpfile}"
-        printf 'Config file was updated. The new config is saved to %s\n' "${tmpfile}" >&2
+        info "Config file was updated. The new config is saved to ${tmpfile}"
     fi
 fi
 
 # Compile the kernel.
+debug "Compiling kernel."
 # shellcheck disable=SC2086
-make ${MAKEOPTS} vmlinux || die "${E_MAKE}" 'Error building kernel'
-popd || die "${E_INCONSISTENCY}" 'Error: Working directory disappeared.'
+make ${quiet_at[INFO]:+-s} ${MAKEOPTS} vmlinux || die "${E_MAKE}" 'Error building kernel'
+popd >/dev/null || die "${E_INCONSISTENCY}" 'Error: Working directory disappeared.'
 cp -a "${tmpdir}/build/vmlinux" "${output_file}"

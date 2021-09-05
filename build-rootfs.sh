@@ -27,15 +27,15 @@ if [[ "${UID}" -ne 0 ]]; then
     min_subuid="$(grep -Po "^(${USER}|${UID}):\K([0-9]+)(?=:65536)" /etc/subuid | head -n1)"
     min_subgid="$(grep -Po "^(${USER}|${UID}):\K([0-9]+)(?=:65536)" /etc/subgid | head -n1)"
     if [[ -z "${min_subuid}" ]]; then
-        printf 'Error: Could not determine valid subuid mapping for user %s\n' "${USER}" >&2
-        printf 'Please add a line like '\'%s:1065536:65536\'' to /etc/subuid\n' "${USER}" >&2
-        printf 'See man 5 subuid for further information\n' >&2
+        error "Error: Could not determine valid subuid mapping for user ${USER}"
+        error "Please add a line like '${USER}:1065536:65536' to /etc/subuid"
+        error "See man 5 subuid for further information"
         exit "${E_IDMAP}"
     fi
     if [[ -z "${min_subgid}" ]]; then
-        printf 'Error: Could not determine valid subgid mapping for user %s\n' "${USER}" >&2
-        printf 'Please add a line like '\'%s:1065536:65536\'' to /etc/subgid\n' "${USER}" >&2
-        printf 'See man 5 subgid for further information\n' >&2
+        error "Error: Could not determine valid subgid mapping for user ${USER}"
+        error "Please add a line like '${USER}:1065536:65536' to /etc/subgid"
+        error "See man 5 subgid for further information"
         exit "${E_IDMAP}"
     fi
     newuidmap "${main_pid}" 0 "${UID}" 1 1 "${min_subuid}" 65536
@@ -64,6 +64,10 @@ Usage: $0 [options] [--] [files]
    Path to the cache directory where downloaded files are stored. The directory
    is created if it does not exist.
    Defaults to '${default_cache_dir}'.
+ -q, --quiet
+   Give less console output. Use multiple times to be more quiet.
+ -v, --verbose
+   Give more console output. Use multiple times to be more verbose.
 EOH
 }
 
@@ -111,6 +115,8 @@ function build_image() {
     local resolv_conf_checksum
     mkdir -p -- "${rootfs_mount}"
     trap 'code=$?; if [[ "${code}" -gt 1 ]]; then if mountpoint --quiet "${rootfs_mount}"; then umount "${rootfs_mount}"; fi; rmdir "${rootfs_mount}"; fi; exit "${code}"' EXIT
+
+    debug "${file}: Building rootfs."
 
     # Parse the rootfs setup file.
     # shellcheck disable=SC2094
@@ -182,6 +188,14 @@ function build_image() {
                         ;;
                 esac
 
+                if [[ -n "${rootfs_url}" ]]; then
+                    debug "${file}: Image base is URL ${rootfs_url}"
+                elif [[ -n "${rootfs_file}" ]]; then
+                    debug "${file}: Image base is local file ${rootfs_file}"
+                elif [[ -n "${rootfs_base_mount}" ]]; then
+                    debug "${file}: Image base is local image ${base}"
+                fi
+
                 # Mount a tmpfs at the root of the new rootfs.
                 if ! mountpoint --quiet "${rootfs_mount}"; then
                     if ! mount -t tmpfs -o size="${rootfs_max_size}M",mode=0700 tmpfs "${rootfs_mount}"; then
@@ -224,7 +238,7 @@ function build_image() {
                             ;;
                         *)
                             # BusyBox tar, for instance.
-                            printf 'Warning: Unknown or unsupported tar implementation. ACLs, extended attributes or SELinux contexts may be missing or extraction may fail completely.\n' >&2
+                            warn 'Warning: Unknown or unsupported tar implementation. ACLs, extended attributes or SELinux contexts may be missing or extraction may fail completely.'
                             tar_opts=('--numeric-owner')
                             ;;
                     esac
@@ -255,12 +269,14 @@ function build_image() {
                     die 2 "${file}: Error: ${cmd} expects exactly 1 argument"
                 fi
                 rootfs_type="${argv[0]}"
+                debug "${file}: Using filesystem ${rootfs_type}"
                 ;;
             MAX_SIZE)
                 if [[ "${argc}" -ne 1 ]]; then
                     die 2 "${file}: Error: ${cmd} expects exactly 1 argument"
                 fi
                 rootfs_max_size="${argv[0]}"
+                debug "${file}: Maximum image size set to ${rootfs_max_size} MiB."
                 if mountpoint --quiet "${rootfs_mount}"; then
                     mount -o "remount,size=${rootfs_max_size}M" "${rootfs_mount}"
                 fi
@@ -270,6 +286,7 @@ function build_image() {
                     die 2 "${file}: Error: ${cmd} expects exactly 1 argument"
                 fi
                 rootfs_min_size="${argv[0]}"
+                debug "${file}: Minimum image size set to ${rootfs_min_size} MiB."
                 ;;
             RUN)
                 if [[ "${argc}" -lt 1 ]]; then
@@ -278,7 +295,26 @@ function build_image() {
                 if ! mountpoint --quiet "${rootfs_mount}"; then
                     die 2 "${file}: Error: ${cmd} can not appear before FROM"
                 fi
+                debug "${file}: Running '${line#${cmd} }' in rootfs."
+                if [[ -n "${quiet_at[WARN]}" ]]; then
+                    # Store stdout in FD 3 and redirect stdout to /dev/null
+                    exec 3>&1
+                    exec 1>/dev/null
+                    if [[ -n "${quiet_at[ERROR]}" ]]; then
+                        # Store stderr in FD 4 and redirect stderr to /dev/null
+                        exec 4>&2
+                        exec 2>/dev/null
+                    fi
+                fi
                 run_in_rootfs "${line#${cmd} }"
+                if [[ -n "${quiet_at[WARN]}" ]]; then
+                    # Restore stdout
+                    exec 1>&3
+                    if [[ -n "${quiet_at[ERROR]}" ]]; then
+                        # Restore stderr
+                        exec 2>&4
+                    fi
+                fi
                 ;;
             COPY)
                 if [[ "${argc}" -lt 2 ]]; then
@@ -287,8 +323,9 @@ function build_image() {
                 if ! mountpoint --quiet "${rootfs_mount}"; then
                     die 2 "${file}: Error: ${cmd} can not appear before FROM"
                 fi
+                debug "${file}: Copying ${argv[*]:0:((${argc}-1))} to ${argv[-1]}."
                 # shellcheck disable=SC2068
-                (shopt -s nullglob; IFS=; cd -- "$(dirname -- "${file}")" && cp -dR -- ${argv[@]:0:((${argc}-1))} "${rootfs_mount}/${argv[-1]}")
+                ([[ -n "${quiet_at[ERROR]}" ]] && exec 2>/dev/null; shopt -s nullglob; IFS=; cd -- "$(dirname -- "${file}")" && cp -dR -- ${argv[@]:0:((${argc}-1))} "${rootfs_mount}/${argv[-1]}")
                 ;;
             *)
                 die 2 "${file}: Error: Invalid directive ${cmd}"
@@ -298,6 +335,7 @@ function build_image() {
 
     if "${interactive}"; then
         # Run an interactive shell in the rootfs, useful for debugging or manual changes.
+        info "${file}: Running interactive shell in rootfs."
         run_in_rootfs /bin/sh
     fi
 
@@ -332,19 +370,20 @@ function build_image() {
     fi
 
     local rootfs_image_file="${f%.rootfs}.img"
-    # Create an empty file for the image.
-    if ! dd if=/dev/zero of="${rootfs_image_file}" bs=1M count="${rootfs_size}"; then
+    debug "${file}: Creating ${rootfs_size} MiB empty image file."
+    if ! dd ${quiet_at[INFO]:+status=none} if=/dev/zero of="${rootfs_image_file}" bs=1M count="${rootfs_size}"; then
         die 1 "${file}: Error: Could not create image ${rootfs_image_file}"
     fi
     # Format with the appropriate filesystem.
+    debug "${file}: Formatting image with ${rootfs_type} filesystem."
     case "${rootfs_type}" in
         ext2|ext3|ext4)
-            if ! mke2fs -t "${rootfs_type}" -L root -m 0 -d "${rootfs_mount}" "${rootfs_image_file}"; then
+            if ! mke2fs ${quiet_at[WARN]:+-q} -t "${rootfs_type}" -L root -m 0 -d "${rootfs_mount}" "${rootfs_image_file}"; then
                 die 1 "${file}: Error: Could not format ${rootfs_image_file} as ${rootfs_type}"
             fi
             ;;
         btrfs)
-            if ! mkfs.btrfs --label root --rootdir "${rootfs_mount}" "${rootfs_image_file}"; then
+            if ! mkfs.btrfs ${quiet_at[WARN]:+-q} --label root --rootdir "${rootfs_mount}" "${rootfs_image_file}"; then
                 die 1 "${file}: Error: Could not format ${rootfs_image_file} as ${rootfs_type}"
             fi
             ;;
@@ -356,6 +395,7 @@ function build_image() {
 }
 
 function cleanup() {
+    debug "Cleaning up namespace and temporary directories."
     stop_rootfs_namespace
     if [[ -n "${tmpdir}" ]]; then
         [[ -d "${tmpdir}/busybox-bin" ]] && rm -rf -- "${tmpdir}/busybox-bin"
@@ -392,13 +432,19 @@ while [[ $# -gt 0 ]]; do
                 cache_dir="${1#*=}"
             fi
             ;;
+        -q|--quiet)
+            (( log_level-- ))
+            ;;
+        -v|--verbose)
+            (( log_level++ ))
+            ;;
         --)
             # End of command line options.
             shift
             break
             ;;
         -*)
-            printf 'Error: Unknown option %s\n' "$1" >&2
+            error "Error: Unknown option $1"
             usage >&2
             exit "${E_CMDLINE}"
             ;;
@@ -409,6 +455,7 @@ while [[ $# -gt 0 ]]; do
     esac
     shift
 done
+log_level_setup
 if [[ $# -eq 0 ]]; then
     shopt -s nullglob
     rootfs_files=( *.rootfs )
