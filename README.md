@@ -114,6 +114,16 @@ Parameters are separated by whitespace.
 To include a whitespace in a parameter value, it needs to be escaped by `\`, e.g. `\ `. To include a literal `\ ` in a parameter, use `\\ `.
 The following commands are implemented:
 
+#### UMASK
+
+Sets the umask value used when creating the filesystem image.
+Expects one parameter and the is the umask value.
+For example, to restrict all access to the image for 'other users':
+```
+UMASK 027
+```
+The default value is inherited from the environment from which `build-rootfs.sh` is called.
+
 #### FROM
 
 Every `.rootfs` file needs to contain this command. It describes the base used for the image.

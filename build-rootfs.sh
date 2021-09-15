@@ -11,6 +11,7 @@ readonly E_BUILD=3
 rootfs_type='ext2'
 rootfs_max_size=128
 rootfs_min_size=0
+rootfs_umask="$(umask)"
 
 if [[ "${UID}" -ne 0 ]]; then
     # Unshare everything except network and restart.
@@ -106,6 +107,7 @@ function build_image() {
     local rootfs_file
     local signature_url
     local signature_keys
+    local rootfs_umask="${rootfs_umask}"
     local rootfs_base_name
     local rootfs_base_version
     local rootfs_type="${rootfs_type}"
@@ -138,6 +140,13 @@ function build_image() {
             }' <<< "${line#${cmd} }")
         local argc="${#argv[@]}"
         case "${cmd}" in
+            UMASK)
+                if [[ "${argc}" -ne 1 ]]; then
+                    die 2 "${file}: Error: ${cmd} expects exactly 1 argument"
+                fi
+                rootfs_umask="${argv[0]}"
+                debug "${file}: Umask set to ${rootfs_umask}."
+                ;;
             FROM)
                 local base="${argv[0]}"
                 case "${base}" in
@@ -371,7 +380,7 @@ function build_image() {
 
     local rootfs_image_file="${f%.rootfs}.img"
     debug "${file}: Creating ${rootfs_size} MiB empty image file."
-    if ! dd ${quiet_at[INFO]:+status=none} if=/dev/zero of="${rootfs_image_file}" bs=1M count="${rootfs_size}"; then
+    if ! (umask "${rootfs_umask}" && dd ${quiet_at[INFO]:+status=none} if=/dev/zero of="${rootfs_image_file}" bs=1M count="${rootfs_size}"); then
         die 1 "${file}: Error: Could not create image ${rootfs_image_file}"
     fi
     # Format with the appropriate filesystem.
