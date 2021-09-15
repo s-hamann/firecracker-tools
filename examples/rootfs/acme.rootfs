@@ -1,0 +1,38 @@
+FROM 00_base_singlescript.img
+
+# Restrict access from unauthorized users as this image will contain DNS management credentials.
+UMASK 027
+
+# Install requirements.
+RUN apk -U add bash lego openssl openssh-client py3-requests py3-cryptography
+
+# Download deSEC.io DNS API client.
+RUN wget -P /usr/local/bin/ https://raw.githubusercontent.com/s-hamann/desec-dns/main/desec-dns.py
+RUN chmod +x /usr/local/bin/desec-dns.py
+
+# Set up ACME configuration.
+RUN mkdir -p /etc/acme/scripts
+RUN chmod 750 /etc/acme/
+COPY acme/desec_token /etc/acme/desec_token
+RUN chmod 440 /etc/acme/desec_token
+COPY acme/*.conf /etc/acme/
+COPY acme/*.env /etc/acme/
+
+# Copy the scripts that make this run.
+COPY acme/run_lego.sh /usr/local/bin/
+COPY acme/update-dns.sh /etc/acme/scripts/
+COPY acme/deploy_*.sh /etc/acme/scripts/
+COPY acme/verify_*.sh /etc/acme/scripts/
+
+# Set up a writable mount point for lego data.
+RUN mkdir /root/.lego
+RUN echo 'LABEL=data /root/.lego ext2 noatime,nosuid,noexec,nodev 0 0' >> /etc/fstab
+
+# Set up SSH access to managed systems.
+RUN mkdir /root/.ssh/
+COPY acme/ssh_config /root/.ssh/config
+COPY acme/known_hosts /root/.ssh/
+COPY acme/id_* /root/.ssh/
+
+# Make run_lego.sh run on boot.
+RUN printf '#!/bin/sh\n/bin/su -l -c /usr/local/bin/run_lego.sh\n' > /etc/rc.local
