@@ -68,6 +68,11 @@ parser.add_argument('--resource-limit', action='append',
                     'used multiple times and is passed to jailer as is.')
 parser.add_argument('--daemonize', action='store_true', default=False,
                     help='run the VM in a background process')
+seccomp = parser.add_mutually_exclusive_group()
+seccomp.add_argument('--no-seccomp', action='store_true',
+                    help='disables seccomp filtering. Not recommended.')
+seccomp.add_argument('--seccomp-filter', type=Path,
+                    help='path to a custom seccomp filter. For advanced users.')
 args = parser.parse_args()
 
 if not args.config.is_file():
@@ -206,6 +211,10 @@ for drive in config['drives']:
     # Hardlink the drive to the instance chroot.
     p.link_to(instance_chroot / p.name)
 
+# Handle custom seccomp filter.
+if args.seccomp_filter:
+    shutil.copy(args.seccomp_filter, Path(instance_chroot / 'seccomp.bpf'))
+
 # Handle networking.
 if 'network-interfaces' in config:
     for i, interface in enumerate(config['network-interfaces']):
@@ -269,6 +278,10 @@ if args.resource_limit:
 if args.daemonize:
     jailer_cmd += ['--daemonize']
 jailer_cmd += ['--', '--config-file', 'config.json']
+if args.no_seccomp:
+    jailer_cmd += ['--no-seccomp']
+elif args.seccomp_filter:
+    jailer_cmd += ['--seccomp-filter', 'seccomp.bpf']
 
 r = subprocess.run(jailer_cmd)
 if args.new_pid_ns:
