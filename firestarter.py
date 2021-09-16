@@ -7,8 +7,10 @@ import json
 import os
 import pwd
 import shutil
+import signal
 import subprocess
 import sys
+import time
 import uuid
 
 from pathlib import Path
@@ -53,6 +55,7 @@ parser.add_argument('-f', '--firecracker', type=Path, help='path to the firecrac
 parser.add_argument('-j', '--jailer', type=Path, help='path to the jailer binary')
 parser.add_argument('-u', '--user', default='firecracker',
                     help='system user account to run Firecracker as')
+parser.add_argument('--new-pid-ns', action='store_true', help='exec into a new PID namespace')
 parser.add_argument('--netns', help='path to the network namespace this microVM should join')
 parser.add_argument('--cgroup', action='append',
                     help='cgroup and value to be set by the jailer. This argument can be used '
@@ -220,6 +223,8 @@ with Path(instance_chroot / 'config.json').open('w') as f:
 # Run jailer.
 jailer_cmd = [args.jailer, '--exec-file', args.firecracker, '--id', vmid,
               '--chroot-base-dir', args.chroot_base_dir, '--uid', str(uid), '--gid', str(gid)]
+if args.new_pid_ns:
+    jailer_cmd += ['--new-pid-ns']
 if args.netns:
     jailer_cmd += ['--netns', args.netns]
 if args.cgroup:
@@ -230,4 +235,30 @@ if args.daemonize:
 jailer_cmd += ['--', '--config-file', 'config.json']
 
 r = subprocess.run(jailer_cmd)
+if args.new_pid_ns:
+    # With --new-pid-ns, jailer forks and therefore does not block until firecracker terminates.
+    # We need to wait for firecracker before we can exit and clean up the chroot directory.
+    with Path(instance_chroot / 'firecracker.pid').open('r') as f:
+        # Get the PID of the firecracker process from the file firecracker.pid in the root of the
+        # chroot directory.
+        firecracker_pid = int(f.read())
+        try:
+            # pidfd_open is superior but requires Python 3.9+ and Linux 5.3+.
+            # If this fails, fall back to traditional process management.
+            firecracker_pid = open(os.pidfd_open(firecracker_pid))
+        except Exception:
+            pass
+        while True:
+            try:
+                # Send signal 0 (no signal), to check if the process is still alive.
+                if type(firecracker_pid) == int:
+                    os.kill(firecracker_pid, 0)
+                else:
+                    signal.pidfd_send_signal(firecracker_pid.fileno(), 0)
+            except ProcessLookupError:
+                # The firecracker process has exited, we can clean up now.
+                if type(firecracker_pid) != int:
+                    firecracker_pid.close()
+                break
+            time.sleep(0.25)
 sys.exit(r.returncode)
