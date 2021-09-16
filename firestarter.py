@@ -60,6 +60,9 @@ parser.add_argument('--netns', help='path to the network namespace this microVM 
 parser.add_argument('--cgroup', action='append',
                     help='cgroup and value to be set by the jailer. This argument can be used '
                     'multiple times and is passed to jailer as is.')
+parser.add_argument('--resource-limit', action='append',
+                    help='resource limit values to be set by the jailer. This argument can be '
+                    'used multiple times and is passed to jailer as is.')
 parser.add_argument('--daemonize', action='store_true', default=False,
                     help='run the VM in a background process')
 args = parser.parse_args()
@@ -230,6 +233,9 @@ if args.netns:
 if args.cgroup:
     for cgroup in args.cgroup:
         jailer_cmd += ['--cgroup', cgroup]
+if args.resource_limit:
+    for limit in args.resource_limit:
+        jailer_cmd += ['--resource-limit', limit]
 if args.daemonize:
     jailer_cmd += ['--daemonize']
 jailer_cmd += ['--', '--config-file', 'config.json']
