@@ -48,6 +48,9 @@ parser.add_argument('-d', '--chroot-base-dir', type=Path, default=Path('chroot')
 parser.add_argument('-k', '--kernel-base-dir', type=Path,
                     help='base path for kernel files, i.e. relative paths in VM config are '
                     'relative to this directory (default is the config file directory)')
+parser.add_argument('--initrd-base-dir', type=Path,
+                    help='base path for initrd files, i.e. relative paths in VM config are '
+                    'relative to this directory (default is the kernel base directory)')
 parser.add_argument('-i', '--image-base-dir', type=Path,
                     help='base path for image files, i.e. relative paths in VM config are '
                     'relative to this directory (default is the config file directory)')
@@ -72,6 +75,9 @@ if not args.config.is_file():
 
 if not args.kernel_base_dir:
     args.kernel_base_dir = args.config.resolve().parent
+
+if not args.initrd_base_dir:
+    args.initrd_base_dir = args.kernel_base_dir
 
 if not args.image_base_dir:
     args.image_base_dir = args.config.resolve().parent
@@ -151,6 +157,30 @@ except ValueError:
 config['boot-source']['kernel_image_path'] = kernel.name
 # Hardlink the kernel to the instance chroot.
 kernel.link_to(instance_chroot / kernel.name)
+
+# Resolve the initrd path.
+if 'initrd_path' in config['boot-source']:
+    initrd = Path(config['boot-source']['initrd_path'])
+    if initrd.is_absolute():
+        initrd_glob = str(initrd.relative_to('/'))
+        initrd_glob_base = Path('/')
+    else:
+        initrd_glob = str(initrd)
+        initrd_glob_base = args.initrd_base_dir
+    try:
+        glob_order = config['boot-source']['glob_order']
+        del config['boot-source']['glob_order']
+        glob_order = globals()[glob_order]
+    except KeyError:
+        glob_order = default_glob_order
+    try:
+        initrd = max(initrd_glob_base.glob(initrd_glob), key=glob_order)
+    except ValueError:
+        raise ConfigError('{}: No such file or directory.'.format(initrd))
+    # Store only the file name in the config, as the full path is meaningless in the chroot.
+    config['boot-source']['initrd_path'] = initrd.name
+    # Hardlink the initrd to the instance chroot.
+    initrd.link_to(instance_chroot / initrd.name)
 
 # Resolve the drives' paths.
 for drive in config['drives']:
