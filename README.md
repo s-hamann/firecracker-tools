@@ -243,6 +243,12 @@ Refer to `firestarter.py --help` for a list.
 
 `firestarter.py` needs to be started as `root`, since this is a requirement of `jailer`.
 
+The first time `firestarter.py` receives a terminating signal (`SIGINT`, `SIGTERM`, `SIGQUIT`, `SIGHUP`), it sends `Ctrl+Alt+Del` to the VM, so the guest can shut down gracefully.
+This does, however, require the cooperation of the guest.
+If `firestarter.py` does not terminate in an acceptable time span, it is recommended to send the same signal again.
+Graceful guest shutdown is attempted only once.
+The second signal is passed to the Firecracker process, followed by `SIGKILL` after a short delay.
+
 ### Config File Format
 
 `firestarter.py` expects a JSON formatted config file that contains all information about the VM.

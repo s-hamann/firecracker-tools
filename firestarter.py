@@ -8,6 +8,7 @@ import os
 import pwd
 import shutil
 import signal
+import socket
 import subprocess
 import sys
 import time
@@ -35,6 +36,66 @@ def cleanup():
         shutil.rmtree(instance_dir)
     except NameError:
         pass
+
+
+def signal_handler(sig, frame):
+    """Handler for terminating signals. Send CtrlAltDel to the firecracker process on first
+    invocation. Forward the signal and kill firecracker on subsequent invocations.
+
+    :sig: signal number
+    :frame: current stack frame
+
+    """
+
+    if not hasattr(signal_handler, "SentCtrlAltDel"):
+
+        # Send Ctrl+Alt+Del via the Firecracker API socket so the guest can shut down gracefully.
+        shutdown_request = ('PUT /actions HTTP/1.0\r\n'
+                            'Content-Type: application/json\r\n'
+                            'Content-Length: 33\r\n'
+                            '\r\n'
+                            '{"action_type": "SendCtrlAltDel"}')
+        api_client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        api_client.settimeout(0.1)
+        api_client.connect(bytes(Path(instance_chroot / 'run' / 'firecracker.socket')))
+        api_client.send(shutdown_request.encode())
+        try:
+            while len(api_client.recv(256)) >= 256:
+                pass
+        except socket.timeout:
+            pass
+        api_client.close()
+        signal_handler.SentCtrlAltDel = True
+
+    else:
+
+        # This is the second signal. If the guest did not react to Ctrl+Alt+Del the first time,
+        # it won't do so when sending it again. Pass the signal to the Firecracker process and
+        # follow up with SIGKILL.
+        if firecracker_process.poll() is None:
+            # Our direct child process is still running. Signal it.
+            firecracker_process.send_signal(sig)
+            try:
+                firecracker_process.communicate(timeout=0.25)
+            except subprocess.TimeoutExpired:
+                firecracker_process.kill()
+        else:
+            # Our direct child has terminated. This means it forked and we are really waiting
+            # for firecracker_pid.
+            if type(firecracker_pid) == int:
+                os.kill(firecracker_pid, sig)
+                time.sleep(0.25)
+                try:
+                    os.kill(firecracker_pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+            else:
+                signal.pidfd_send_signal(firecracker_pid.fileno(), sig)
+                time.sleep(0.25)
+                try:
+                    signal.pidfd_send_signal(firecracker_pid.fileno(), signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
 
 
 created_tap_interfaces = []
@@ -283,7 +344,15 @@ if args.no_seccomp:
 elif args.seccomp_filter:
     jailer_cmd += ['--seccomp-filter', 'seccomp.bpf']
 
-r = subprocess.run(jailer_cmd)
+# Set up a signal handler to gracefully shut down the VM when signalled.
+for sig in [signal.SIGINT, signal.SIGTERM, signal.SIGQUIT, signal.SIGHUP]:
+    signal.signal(sig, signal_handler)
+
+# Run jailer/firecracker and wait for the process to finish but store a reference to the child
+# process.
+firecracker_process = subprocess.Popen(jailer_cmd)
+firecracker_process.communicate()
+
 if args.new_pid_ns:
     # With --new-pid-ns, jailer forks and therefore does not block until firecracker terminates.
     # We need to wait for firecracker before we can exit and clean up the chroot directory.
@@ -310,4 +379,4 @@ if args.new_pid_ns:
                     firecracker_pid.close()
                 break
             time.sleep(0.25)
-sys.exit(r.returncode)
+sys.exit(firecracker_process.returncode)
