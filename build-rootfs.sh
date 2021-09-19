@@ -345,7 +345,7 @@ function build_image() {
     if "${interactive}"; then
         # Run an interactive shell in the rootfs, useful for debugging or manual changes.
         info "${file}: Running interactive shell in rootfs."
-        run_in_rootfs /bin/sh
+        PS1="\\u@${file%.*}:\\w\\\$ " run_in_rootfs /bin/sh
     fi
 
     stop_rootfs_namespace
