@@ -54,6 +54,8 @@ Usage: $0 [options]
    Give less console output. Use multiple times to be more quiet.
  -v, --verbose
    Give more console output. Use multiple times to be more verbose.
+ --colour yes|no|auto
+   Enable or disable coloured console output. Defaults to 'auto'.
 EOH
 }
 
@@ -136,6 +138,22 @@ while [[ $# -gt 0 ]]; do
         -v|--verbose)
             (( log_level++ ))
             ;;
+        --colour|--colour=|--color=*|--colour=*)
+            if [[ "$1" == "${1%=*}" ]]; then
+                c="$2"
+                shift
+            else
+                c="${1#*=}"
+            fi
+            # shellcheck disable=SC2034 # $colour is used in functions.sh
+            case "${c}" in
+                y|yes|true|always) colour=true ;;
+                n|no|false|never) colour=false ;;
+                auto) [[ -t 1 && -t 2 ]] && colour=true || colour=false ;;
+                *) die "${E_CMDLINE}" "Invalid colour '${c}'." ;;
+            esac
+            unset c
+            ;;
         *)
             usage >&2
             exit "${E_CMDLINE}"
@@ -145,6 +163,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 log_level_setup
+colour_setup
 
 # Get the latest kernel version.
 if [[ "${kernel_version}" != *.*.* ]]; then

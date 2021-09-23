@@ -69,6 +69,8 @@ Usage: $0 [options] [--] [files]
    Give less console output. Use multiple times to be more quiet.
  -v, --verbose
    Give more console output. Use multiple times to be more verbose.
+ --colour yes|no|auto
+   Enable or disable coloured console output. Defaults to 'auto'.
 EOH
 }
 
@@ -345,7 +347,7 @@ function build_image() {
     if "${interactive}"; then
         # Run an interactive shell in the rootfs, useful for debugging or manual changes.
         info "${file}: Running interactive shell in rootfs."
-        PS1="\\u@${file%.*}:\\w\\\$ " run_in_rootfs /bin/sh
+        PS1="${C_RED}\\u${C_RESET}@${C_GREEN}${file%.*}${C_RESET}:${C_BLUE}\\w${C_RESET}\\\$ " run_in_rootfs /bin/sh
     fi
 
     stop_rootfs_namespace
@@ -447,6 +449,22 @@ while [[ $# -gt 0 ]]; do
         -v|--verbose)
             (( log_level++ ))
             ;;
+        --colour|--colour=|--color=*|--colour=*)
+            if [[ "$1" == "${1%=*}" ]]; then
+                c="$2"
+                shift
+            else
+                c="${1#*=}"
+            fi
+            # shellcheck disable=SC2034 # $colour is used in functions.sh
+            case "${c}" in
+                y|yes|true|always) colour=true ;;
+                n|no|false|never) colour=false ;;
+                auto) [[ -t 1 && -t 2 ]] && colour=true || colour=false ;;
+                *) die "${E_CMDLINE}" "Invalid colour '${c}'." ;;
+            esac
+            unset c
+            ;;
         --)
             # End of command line options.
             shift
@@ -465,6 +483,7 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 log_level_setup
+colour_setup
 if [[ $# -eq 0 ]]; then
     shopt -s nullglob
     rootfs_files=( *.rootfs )

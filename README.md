@@ -29,6 +29,7 @@ build-kernel.sh
 * file
 * binutils (or BusyBox)
 * patch (or BusyBox) (optional)
+* tput (ncurses, optional)
 * [Requirements to compile the Kernel](https://www.kernel.org/doc/html/latest/process/changes.html)
 
 build-rootfs.sh
@@ -45,6 +46,7 @@ build-rootfs.sh
 * GNU tar or BSD tar (or BusyBox, but with limited functionality)
 * e2fsprogs
 * btrfs-progs (optional)
+* tput (ncurses, optional)
 
 firestarter.py
 --------------

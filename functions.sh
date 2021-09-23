@@ -12,11 +12,14 @@ declare -A quiet_at
 # Default log level.
 log_level="${LOG_INFO}"
 
+# Default colour setting.
+[[ -t 1 && -t 2 ]] && colour=true || colour=false
+
 function error() {
     # usage: error $message [...]
     # Prints message to stderr if the global log level allows it.
     if [[ "${log_level}" -ge "${LOG_ERROR}" ]]; then
-        printf "%s\n" "$*" >&2
+        printf "%s%s%s\n" "${C_ERROR}" "$*" "${C_RESET}" >&2
     fi
 }
 
@@ -24,7 +27,7 @@ function warn() {
     # usage: warn $message [...]
     # Prints message to stderr if the global log level allows it.
     if [[ "${log_level}" -ge "${LOG_WARN}" ]]; then
-        printf "%s\n" "$*" >&2
+        printf "%s%s%s\n" "${C_WARN}" "$*" "${C_RESET}" >&2
     fi
 }
 
@@ -32,7 +35,7 @@ function info() {
     # usage: info $message [...]
     # Prints message to stderr if the global log level allows it.
     if [[ "${log_level}" -ge "${LOG_INFO}" ]]; then
-        printf "%s\n" "$*" >&2
+        printf "%s%s%s\n" "${C_INFO}" "$*" "${C_RESET}" >&2
     fi
 }
 
@@ -40,7 +43,7 @@ function debug() {
     # usage: debug $message [...]
     # Prints message to stderr if the global log level allows it.
     if [[ "${log_level}" -ge "${LOG_DEBUG}" ]]; then
-        printf "%s\n" "$*" >&2
+        printf "%s%s%s\n" "${C_DEBUG}" "$*" "${C_RESET}" >&2
     fi
 }
 
@@ -62,6 +65,24 @@ function log_level_setup() {
         local level_name="LOG_${level}"
         quiet_at["${level}"]="$([[ "${log_level}" -le "${!level_name}" ]] && echo 'true')"
     done
+}
+
+function colour_setup() {
+    # usage: colour_setup
+    # Sets up named colour variables, if coloured output is enabled and tput is
+    # available.
+    if "${colour}" && command -v tput >/dev/null; then
+        readonly C_RED="$(if (( $(tput colors) > 8 )); then tput setaf 9; else tput setaf 1; fi)"
+        readonly C_GREEN="$(tput setaf 2)"
+        readonly C_YELLOW="$(tput setaf 3)"
+        readonly C_BLUE="$(tput setaf 4)"
+
+        readonly C_ERROR="${C_RED}"
+        readonly C_WARN="${C_YELLOW}"
+        readonly C_INFO="${C_GREEN}"
+        readonly C_DEBUG="${C_BLUE}"
+        readonly C_RESET="$(tput sgr0)"
+    fi
 }
 
 function busybox_setup() {
