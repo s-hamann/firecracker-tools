@@ -116,6 +116,8 @@ function build_image() {
     local rootfs_size
     local rootfs_min_size="${rootfs_min_size}"
     local rootfs_max_size="${rootfs_max_size}"
+    local rootfs_inodes
+    local rootfs_bytes_per_inode
     local resolv_conf_checksum
     mkdir -p -- "${rootfs_mount}"
     trap 'code=$?; if [[ "${code}" -gt 1 ]]; then if mountpoint --quiet "${rootfs_mount}"; then umount "${rootfs_mount}"; fi; rmdir "${rootfs_mount}"; fi; exit "${code}"' EXIT
@@ -360,9 +362,17 @@ function build_image() {
         fi
     fi
 
-    # Determine size of the disk image.
+    # Determine size of the disk image and inode requirements.
     rootfs_size="$(du -m -s -- "${rootfs_mount}" | cut -f1)"
+    rootfs_inodes="$(df -i "${rootfs_mount}" | tail -n1 | awk '{ print $3}')"
+    rootfs_bytes_per_inode="$(( rootfs_size * 1024 * 1024 / (rootfs_inodes + 16) ))"
+    debug "${file}: Filesystem requires ${rootfs_size} MiB and ${rootfs_inodes} inodes (${rootfs_bytes_per_inode} bytes per inode)."
     case "${rootfs_type}" in
+        ext2|ext3|ext4)
+            # Add some space for the inode table.
+            # This assumes 256 byte inodes, which is the default as of e2fsprogs 1.46.4.
+            (( rootfs_size+=((rootfs_size * 256 - 1) / rootfs_bytes_per_inode) + 1))
+            ;;&
         ext3|ext4)
             # Add 4 MiB for the journal.
             (( rootfs_size+=4 ))
@@ -389,7 +399,7 @@ function build_image() {
     debug "${file}: Formatting image with ${rootfs_type} filesystem."
     case "${rootfs_type}" in
         ext2|ext3|ext4)
-            if ! mke2fs ${quiet_at[WARN]:+-q} -t "${rootfs_type}" -L root -m 0 -d "${rootfs_mount}" "${rootfs_image_file}"; then
+            if ! mke2fs ${quiet_at[WARN]:+-q} -t "${rootfs_type}" -L root -m 0 -i "${rootfs_bytes_per_inode}" -d "${rootfs_mount}" "${rootfs_image_file}"; then
                 die 1 "${file}: Error: Could not format ${rootfs_image_file} as ${rootfs_type}"
             fi
             ;;
