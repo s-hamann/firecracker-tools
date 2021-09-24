@@ -501,6 +501,11 @@ if [[ $# -eq 0 ]]; then
 else
     rootfs_files=( "$@" )
 fi
+for file in "${rootfs_files[@]}"; do
+    if [[ ! -r "${file}" ]]; then
+        die "${E_CMDLINE}" "Rootfs specification file '${file}' does not exist or is not readable."
+    fi
+done
 
 mkdir -p "${cache_dir}"
 
