@@ -180,21 +180,21 @@ for file in "${config_dir}"/*.conf; do
     if [[ -z "${key_type}" ]]; then
         key_type="$(get_from_config "${config_dir}/main.conf" key_type ec256)"
     fi
-    # deploy: Deployment method. May be a named deployment method from $CONFIG_DIR/scripts/deploy_*.sh or an absolute path to a script/executable that handles deployment.
+    # deploy: Deployment method. May be a named deployment method from $config_dir/scripts/deploy_*.sh or an absolute path to a script/executable that handles deployment.
     deploy="$(get_from_config "${file}" deploy)"
     if [[ -z "${deploy}" ]]; then
         deploy="$(get_from_config "${config_dir}/main.conf" deploy sftp)"
     fi
     if [[ "${deploy:0:1}" != '/' ]]; then
-        deploy="${CONFIG_DIR}/scripts/deploy_${deploy}.sh"
+        deploy="${config_dir}/scripts/deploy_${deploy}.sh"
     fi
-    # verify: Deployment verification method. May be a named verification method from $CONFIG_DIR/scripts/verify_*.sh or an absolute path to a script/executable that verifies certificate deployment.
+    # verify: Deployment verification method. May be a named verification method from $config_dir/scripts/verify_*.sh or an absolute path to a script/executable that verifies certificate deployment.
     verify="$(get_from_config "${file}" verify)"
     if [[ -z "${verify}" ]]; then
         verify="$(get_from_config "${config_dir}/main.conf" verify connect)"
     fi
     if [[ "${verify:0:1}" != '/' ]]; then
-        verify="${CONFIG_DIR}/scripts/verify_${verify}.sh"
+        verify="${config_dir}/scripts/verify_${verify}.sh"
     fi
     # verify_timeout: Timeout for certificate deployment verification in seconds.
     verify_timeout="$(get_from_config "${file}" verify_timeout)"
@@ -214,7 +214,7 @@ for file in "${config_dir}"/*.conf; do
 
     # Set default DNS update script, if nothing else is configured.
     if [[ "${dns_provider}" == 'exec' && -z "${EXEC_PATH}" ]]; then
-        export EXEC_PATH="${CONFIG_DIR}/scripts/update-dns.sh"
+        export EXEC_PATH="${config_dir}/scripts/update-dns.sh"
     fi
 
     # Construct the lego command line arguments.
