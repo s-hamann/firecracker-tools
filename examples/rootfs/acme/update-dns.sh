@@ -1,7 +1,7 @@
 #!/bin/sh
 # shellcheck disable=SC2039
 
-readonly desec_dns=/usr/local/bin/desec-dns.py
+readonly desec_dns=/usr/local/bin/desec.py
 readonly token_file=/etc/acme/desec_token
 
 split_domain() {
