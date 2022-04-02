@@ -120,7 +120,7 @@ function build_image() {
     local rootfs_bytes_per_inode
     local resolv_conf_checksum
     mkdir -p -- "${rootfs_mount}"
-    trap 'code=$?; if [[ "${code}" -gt 1 ]]; then if mountpoint --quiet "${rootfs_mount}"; then umount "${rootfs_mount}"; fi; rmdir "${rootfs_mount}"; fi; exit "${code}"' EXIT
+    trap 'code=$?; cleanup_rootfs "${rootfs_mount}" "${code}"' EXIT
 
     debug "${file}: Building rootfs."
 
@@ -214,6 +214,18 @@ function build_image() {
                     if ! mount -t tmpfs -o size="${rootfs_max_size}M",mode=0700 tmpfs "${rootfs_mount}"; then
                         die 2 "${file}: Error: Could not mount tmpfs at ${rootfs_mount}"
                     fi
+                    # Populate minimal /dev.
+                    mkdir "${rootfs_mount}/dev" || die 2 "${file}: Error: Could not create /dev directory"
+                    mount -t tmpfs -o nosuid,relatime,size=10M,mode=0755 tmpfs "${rootfs_mount}/dev" || die 2 "${file}: Error: Could not mount tmpfs at ${rootfs_mount}/dev"
+                    for device in /dev/null /dev/random /dev/full /dev/tty /dev/zero /dev/urandom /dev/console; do
+                        touch "${rootfs_mount}${device}" || die 2 "${file}: Error: Could not create stub ${device}"
+                        mount --bind "${device}" "${rootfs_mount}${device}" || die 2 "${file}: Error: Could not set up ${device}"
+                    done
+                    for symlink in /dev/fd:/proc/self/fd /dev/stdin:/proc/self/fd/0 /dev/stdout:/proc/self/fd/1 /dev/stderr:/proc/self/fd/3; do
+                        ln -s "${symlink#*:}" "${rootfs_mount}${symlink%:*}" || die 2 "${file}: Error: Could not set up ${symlink%:*}"
+                    done
+                    mkdir "${rootfs_mount}/dev/shm" || die 2 "${file}: Error: Could not create /dev/shm directory"
+                    mount -t tmpfs -o nosuid,nodev,noexec,relatime,size=64M tmpfs "${rootfs_mount}/dev/shm" || die 2 "${file}: Error: Could not mount tmpfs at ${rootfs_mount}/dev/shm"
                 fi
 
                 # Fill the rootfs with content.
@@ -244,15 +256,15 @@ function build_image() {
                     # Extract the rootfs archive.
                     case "$(tar --version | head -n1)" in
                         'tar (GNU tar)'*)
-                            tar_opts=('--numeric-owner' '--xattrs' '--xattrs-include="*"' '--acls')
+                            tar_opts=('--numeric-owner' '--xattrs' '--xattrs-include="*"' '--acls' '--exclude' 'dev/*')
                             ;;
                         bsdtar*)
-                            tar_opts=('--numeric-owner' '--xattrs' '--acls')
+                            tar_opts=('--numeric-owner' '--xattrs' '--acls' '--exclude' 'dev/*')
                             ;;
                         *)
                             # BusyBox tar, for instance.
                             warn 'Warning: Unknown or unsupported tar implementation. ACLs, extended attributes or SELinux contexts may be missing or extraction may fail completely.'
-                            tar_opts=('--numeric-owner')
+                            tar_opts=('--numeric-owner' '--exclude' './dev/*')
                             ;;
                     esac
                     if ! tar -xpf "${rootfs_file}" -C "${rootfs_mount}" "${tar_opts[@]}"; then
@@ -352,7 +364,7 @@ function build_image() {
         PS1="${C_RED}\\u${C_RESET}@${C_GREEN}${file%.*}${C_RESET}:${C_BLUE}\\w${C_RESET}\\\$ " run_in_rootfs /bin/sh
     fi
 
-    stop_rootfs_namespace
+    cleanup_rootfs "${rootfs_mount}" 0
 
     # Restore original /etc/resolv.conf if the resolv.conf in the rootfs was not changed.
     if md5sum -c <<< "${resolv_conf_checksum}" &>/dev/null; then
@@ -413,6 +425,40 @@ function build_image() {
             ;;
     esac
     )
+}
+
+function cleanup_rootfs() {
+    local rootfs_mount="$1"
+    local code="$2"
+
+    debug "Cleaning up ${rootfs_mount} (${code})."
+
+    # Stop the namespace.
+    stop_rootfs_namespace
+
+    # Unmount /dev.
+    if [[ -d "${rootfs_mount}/dev" ]]; then
+        for dev in "${rootfs_mount}"/dev/*; do
+            if mountpoint --quiet -- "${dev}"; then
+                umount "${dev}"
+            fi
+        done
+        if mountpoint --quiet -- "${rootfs_mount}/dev"; then
+            umount -- "${rootfs_mount}/dev"
+        fi
+    fi
+
+    # If setup failed, unmount the rootfs, otherwise leave it as a base for others.
+    # Note: Errors when creating the image return 1, so that the rootfs is not unmounted here.
+    if [[ "${code}" -gt 1 ]]; then
+        if mountpoint --quiet "${rootfs_mount}"; then
+            umount "${rootfs_mount}"
+        fi
+        rmdir "${rootfs_mount}"
+    fi
+
+    # Return the original exit code.
+    return "${code}"
 }
 
 function cleanup() {
