@@ -138,7 +138,7 @@ Multiple forms are supported:
   The resulting `.img` file alone is not sufficient.
 * `FROM some.tar`  
   Populate the rootfs image with the  contents of a (possibly compressed) tar archive `some.tar`.
-  Accepted file extensions are `.tar`, `.tar.*`, `.tgz`, `.tbz`, `.tbz2` and `.txz`.
+  Accepted file extensions are `.tar`, `.tar.*`, `.tgz`, `.tbz`, `.tbz2`, `.tlz`, `.txz`, `.tZ` and `.tzst`.
 * `FROM url [signature_url [key [...]]]`  
   Download a (possibly compressed) tar archive from `url` and extract it into the image.
   The URL of a detached PGP signature for the archive can be specified as `signature_url`.

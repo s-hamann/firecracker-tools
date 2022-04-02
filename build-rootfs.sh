@@ -161,7 +161,7 @@ function build_image() {
                             die 2 "${file}: Error: Base image ${base} not found"
                         fi
                         ;;
-                    *.tar|*.tar.*|*.tgz|*.tbz|*.tbz2|*.txz)
+                    *.tar|*.tar.*|*.tgz|*.tbz|*.tbz2|*.tlz|*.txz|*.tZ|*.tzst)
                         # Base is a tar archive.
                         rootfs_file="${base}"
                         ;;
