@@ -411,7 +411,7 @@ function build_image() {
     debug "${file}: Formatting image with ${rootfs_type} filesystem."
     case "${rootfs_type}" in
         ext2|ext3|ext4)
-            if ! mke2fs ${quiet_at[WARN]:+-q} -t "${rootfs_type}" -L root -m 0 -i "${rootfs_bytes_per_inode}" -O '^resize_inode' -d "${rootfs_mount}" "${rootfs_image_file}"; then
+            if ! mke2fs ${quiet_at[WARN]:+-q} -t "${rootfs_type}" -L root -m 0 -i "${rootfs_bytes_per_inode}" -O '^resize_inode,sparse_super2' -E num_backup_sb=0 -d "${rootfs_mount}" "${rootfs_image_file}"; then
                 die 1 "${file}: Error: Could not format ${rootfs_image_file} as ${rootfs_type}"
             fi
             ;;
