@@ -416,7 +416,7 @@ function build_image() {
             fi
             ;;
         btrfs)
-            if ! mkfs.btrfs ${quiet_at[WARN]:+-q} --label root --rootdir "${rootfs_mount}" "${rootfs_image_file}"; then
+            if ! mkfs.btrfs ${quiet_at[WARN]:+-q} -m single --label root --rootdir "${rootfs_mount}" "${rootfs_image_file}"; then
                 die 1 "${file}: Error: Could not format ${rootfs_image_file} as ${rootfs_type}"
             fi
             ;;
