@@ -290,8 +290,7 @@ Here is an example that showcases some of the extended options:
   ],
   "machine-config": {
     "vcpu_count": 1,
-    "mem_size_mib": 128,
-    "ht_enabled": false
+    "mem_size_mib": 128
   },
   "network-interfaces": [
     {
