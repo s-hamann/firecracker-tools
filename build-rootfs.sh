@@ -194,6 +194,27 @@ function build_image() {
                                 signature_url="https://dl-cdn.alpinelinux.org/alpine/v${rootfs_base_version%.*}/releases/$(uname -m)/alpine-minirootfs-${rootfs_base_version}-$(uname -m).tar.gz.asc"
                                 signature_keys=('0482 D840 22F5 2DF1 C4E7 CD43 293A CD09 07D9 495A')
                                 ;;
+                            gentoo*)
+                                if [[ "${rootfs_base_name}" == 'gentoo' ]]; then
+                                    # Default to no multilib OpenRC stage3 if nothing is specified.
+                                    rootfs_base_name='gentoo-nomultilib-openrc'
+                                fi
+                                # Detemine the flavour, e.g. 'musl' or 'hardened-nomultilib-selinux-openrc').
+                                gentoo_flavour="${rootfs_base_name#gentoo-}"
+                                # Determine the architecture (Gentoo's naming).
+                                gentoo_arch="$(uname -m)"
+                                case "${gentoo_arch}" in
+                                    aarch64) gentoo_arch=arm64 ;;
+                                    x86_64) gentoo_arch=amd64 ;;
+                                esac
+                                if [[ "${rootfs_base_version}" == 'latest' ]]; then
+                                    # Get latest stage3 archive.
+                                    rootfs_base_version="$(curl --silent --location "https://bouncer.gentoo.org/fetch/root/all/releases/${gentoo_arch}/autobuilds/latest-stage3.txt" | grep -F "stage3-${gentoo_arch}-${gentoo_flavour}" | cut -d/ -f1)"
+                                fi
+                                rootfs_url="https://bouncer.gentoo.org/fetch/root/all/releases/${gentoo_arch}/autobuilds/${rootfs_base_version}/stage3-${gentoo_arch}-${gentoo_flavour}-${rootfs_base_version}.tar.xz"
+                                signature_url="${rootfs_url}.asc"
+                                signature_keys=('releng@gentoo.org')
+                                ;;
                             *)
                                 die 2 "${file}: Error: Unknown image base ${rootfs_base_name}"
                                 ;;

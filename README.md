@@ -146,7 +146,12 @@ Multiple forms are supported:
   If no `key`s are given, the signature is verified against the default gnupg keyring of the user running `build-rootfs.sh`.
 * `FROM name[:version]`  
   This is a convenient short-hand for certain known bases.
-  At this time, the only valid value for `name` is `alpine`, which uses the [Alpine Linux](https://alpinelinux.org/) minimal root filesystem.
+  At this time, the following values are accepted for `name`:
+    * `alpine`: the [Alpine Linux](https://alpinelinux.org/) minimal root filesystem
+    * `gentoo-*`: a [Gentoo Linux](https://www.gentoo.org/) stage3 archive.
+      Gentoo provides various stage3 archives.
+      To use a specific archive, include its "keywords" in `name`, e.g. `gentoo-hardened-nomultilib-selinux-openrc`.
+      The name `gentoo` is short for `gentoo-nomultilib-openrc`.
   If `version` is set, that specific version is used.
   If it is not set, `latest` is assumed, which makes `build-rootfs.sh` detect the latest (stable) version of the given base.
 

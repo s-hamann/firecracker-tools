@@ -1,0 +1,39 @@
+MAX_SIZE 4096
+MIN_SIZE 4096
+FROM gentoo:latest
+FILESYSTEM ext2
+
+# Set up a login terminal on the serial console (ttyS0).
+RUN sed -i -e 's/#\(s0:12345:respawn:.*\)/\1/' /etc/inittab
+
+# Make other services not start the 'modules' init script, which does not work due to the lack of kernel modules within the rootfs.
+RUN echo rc_want="!modules" >> /etc/rc.conf
+
+# Disable hwclock service.
+RUN rc-update -q del hwclock boot
+
+# Set up make.conf.
+RUN sed -i -e 's/^COMMON_FLAGS=.*$/COMMON_FLAGS="-march=native -O2 -pipe"/' /etc/portage/make.conf
+RUN echo "MAKEOPTS=-j$(nproc)" >> /etc/portage/make.conf
+RUN echo 'USE="-dri -fortran -gtk -gtk2 -gtk3 -gtk4 -openmp -qt5 -X"' >> /etc/portage/make.conf
+RUN echo 'INPUT_DEVICES=""' >> /etc/portage/make.conf
+RUN echo 'VIDEO_CARDS=""' >> /etc/portage/make.conf
+RUN echo 'FEATURES="nodoc noinfo noman"' >> /etc/portage/make.conf
+RUN rm -r /usr/share/doc /usr/share/info /usr/share/man
+
+# Get a portage snapshot.
+RUN mkdir /var/db/repos/gentoo
+RUN chown portage:portage /var/db/repos/gentoo
+RUN emerge-webrsync -q
+
+# Configure the timezone.
+RUN echo "${TZ:-Etc/UTC}" > /etc/timezone
+RUN rm /etc/localtime
+RUN emerge --config sys-libs/timezone-data
+
+# Set up locales.
+RUN for locale in "$(locale | grep -Po '(?<=").*(?=")' | sort -u)"; do if [ "${locale}" != "${locale%.utf8}" ]; then echo "${locale%.utf8}.UTF-8 UTF-8"; else echo "${locale} ISO-8859-1"; fi; done >> /etc/locale.gen
+RUN locale-gen -q
+
+# Make /etc/resolv.conf link to /etc/net/pnp, which contains the nameserver(s) from the kernel command line.
+RUN ln -fs /proc/net/pnp /etc/resolv.conf
