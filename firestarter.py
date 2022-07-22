@@ -21,6 +21,11 @@ except ModuleNotFoundError:
     pass
 
 
+# For compatibility with Python 3.8/3.9: Implement pathlib.Path.hardlink_to
+if not hasattr(Path, 'hardlink_to'):
+    Path.hardlink_to = lambda self, target: target.link_to(self)
+
+
 class ConfigError(Exception):
     pass
 
@@ -222,7 +227,7 @@ except ValueError:
 # Store only the file name in the config, as the full path is meaningless in the chroot.
 config['boot-source']['kernel_image_path'] = kernel.name
 # Hardlink the kernel to the instance chroot.
-kernel.link_to(instance_chroot / kernel.name)
+(instance_chroot / kernel.name).hardlink_to(kernel)
 
 # Resolve the initrd path.
 if 'initrd_path' in config['boot-source']:
@@ -246,7 +251,7 @@ if 'initrd_path' in config['boot-source']:
     # Store only the file name in the config, as the full path is meaningless in the chroot.
     config['boot-source']['initrd_path'] = initrd.name
     # Hardlink the initrd to the instance chroot.
-    initrd.link_to(instance_chroot / initrd.name)
+    (instance_chroot / initrd.name).hardlink_to(initrd)
 
 # Resolve the drives' paths.
 for drive in config['drives']:
@@ -270,7 +275,7 @@ for drive in config['drives']:
     # Store only the file name in the config, as the full path is meaningless in the chroot.
     drive['path_on_host'] = p.name
     # Hardlink the drive to the instance chroot.
-    p.link_to(instance_chroot / p.name)
+    (instance_chroot / p.name).hardlink_to(p)
 
 # Handle custom seccomp filter.
 if args.seccomp_filter:
