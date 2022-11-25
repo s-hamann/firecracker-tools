@@ -1,3 +1,4 @@
+MAX_SIZE 256
 FROM 00_base_singlescript.img
 
 # Restrict access from unauthorized users as this image will contain DNS management credentials.
