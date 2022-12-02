@@ -398,7 +398,7 @@ function build_image() {
     # Determine size of the disk image and inode requirements.
     rootfs_size="$(du -m -s -- "${rootfs_mount}" | cut -f1)"
     rootfs_inodes="$(df -i "${rootfs_mount}" | tail -n1 | awk '{ print $3}')"
-    rootfs_bytes_per_inode="$(( rootfs_size * 1024 * 1024 / (rootfs_inodes + 16) ))"
+    rootfs_bytes_per_inode="$(( rootfs_size * 1024 * 1024 / (rootfs_inodes + 32) ))"
     debug "${file}: Filesystem requires ${rootfs_size} MiB and ${rootfs_inodes} inodes (${rootfs_bytes_per_inode} bytes per inode)."
     case "${rootfs_type}" in
         ext2|ext3|ext4)
