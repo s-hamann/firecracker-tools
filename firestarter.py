@@ -6,6 +6,7 @@ import ipaddress
 import json
 import os
 import pwd
+import re
 import shutil
 import signal
 import socket
@@ -203,7 +204,21 @@ os.chown(instance_chroot, -1, gid)
 most_recent = lambda p: p.stat().st_mtime
 default_glob_order = most_recent
 if 'version' in globals():
-    latest_version = lambda p: version.parse(str(p))
+    # packaging.version does not support version numbers embedded in strings. So we extract the
+    # version number and pass only that to packaging.version.parse.
+    version_regex = re.compile(version.VERSION_PATTERN, re.VERBOSE | re.IGNORECASE)
+
+    def latest_version(filename):
+        """Parse and return the version number embedded in in the file name.
+
+        :filename: the file name to parse
+        :returns: packaging.version.Version object representing the embedded version number or None
+        """
+        version_part = version_regex.search(str(filename))
+        if version_part is not None:
+            return version.parse(version_part.group())
+        return None
+
     default_glob_order = latest_version
 
 # Resolve the kernel path.
