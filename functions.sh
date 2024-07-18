@@ -139,7 +139,7 @@ function verify_signature() {
     # it is interpreted as a detached signature. If it is omitted, $signed_file
     # needs to contains it's signature.
     # If --key is given, the key with the ID $keyid is obtained from a key
-    # server or the key for the identity $email is obtained via the kws
+    # server or the key for the identity $email is obtained via the wkd
     # protocol. --key can be used multiple times to specify multiple keys.
     # The signature is verified against the given keys, or, if none are given,
     # against the default keyring of the user that happens to run this code.
