@@ -5,11 +5,10 @@ FROM 00_base_singlescript.img
 UMASK 027
 
 # Install requirements.
-RUN apk --no-cache add bash lego openssl openssh-client py3-requests py3-cryptography
+RUN apk --no-cache add bash lego openssl openssh-client py3-pip
 
 # Download deSEC.io DNS API client.
-RUN wget -P /usr/local/bin/ https://raw.githubusercontent.com/s-hamann/desec-dns/main/desec.py
-RUN chmod +x /usr/local/bin/desec.py
+RUN pip install --break-system-packages desec-dns[tlsa]
 
 # Set up ACME configuration.
 RUN mkdir -p /etc/acme/scripts
