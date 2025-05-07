@@ -183,7 +183,7 @@ if 'boot-source' not in config:
     # Add default boot-source section.
     config['boot-source'] = {'kernel_image_path': 'vmlinux-*',
                              'boot_args': 'console=ttyS0 reboot=k panic=1 pci=off quiet'
-                             ' i8042.noaux i8042.nomux i8042.nopnp i8042.dumbkbd'}
+                             ' i8042.noaux i8042.nomux i8042.dumbkbd'}
 
 # Generate a unique ID for the VM instance.
 vmname = args.config.stem if args.config.suffix == '.json' else args.config.name
