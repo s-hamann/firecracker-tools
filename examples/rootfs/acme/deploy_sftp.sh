@@ -16,9 +16,11 @@ crt_path="${crt_dir}/${domain}.unbundled.crt"
 fullchain_path="${crt_dir}/${domain}.crt"
 issuer_path="${crt_dir}/${domain}.issuer.crt"
 key_path="$3"
+: "${sftp_host:="${domain}"}"
+: "${sftp_upload_dir:=upload}"
 
-sftp -b - "${domain}" << EOC
-cd upload
+sftp -b - "${sftp_host}" << EOC
+cd "${sftp_upload_dir}"
 put -p "${crt_path}" "${domain}.pem"
 put -p "${fullchain_path}" "${domain}_fullchain.pem"
 put -p "${issuer_path}" "${domain}_chain.pem"
