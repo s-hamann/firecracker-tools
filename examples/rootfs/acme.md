@@ -52,9 +52,6 @@ The following configuration options are supported:
   Name of the certificate profile to request.
   Refer to the CA's documentation for a list of valid profile names.
   When not set, the profile is selected by the CA.
-* `must_staple`  
-  Set to `true` to request a certificate with the `must-staple` extension ([RFC
-  6066](https://tools.ietf.org/html/rfc6066)). Default is `false`.
 * `key_type`  
   Type and length of the key pair to generate for the certificate. Consists of
   the algorithm (`rsa` or `ec`) followed by the key length. Default value is

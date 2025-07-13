@@ -66,14 +66,12 @@ read_env() {
 }
 
 generate_csr() {
-    # usage: generate_csr $key_type $must_staple $domain [$domain [...]]
+    # usage: generate_csr $key_type $domain [$domain [...]]
     # Generate a key pair of the given type and a certificate signing request using that key pair for the given domain(s).
     # The CSR is saved to $tmpdir/$domain.csr and the private key to $tmpdir/keys/$domain.key.
 
     local key_type="$1"
     local openssl_key_type
-    shift
-    local must_staple="$1"
     shift
     local domain="$1"
     local san=''
@@ -100,12 +98,7 @@ generate_csr() {
             ;;
     esac
 
-    if [[ "${must_staple}" != 'true' ]]; then
-        # No must-staple extension requested. Set the variable to null.
-        # If it is not null, the extension is added to the CSR below.
-        must_staple=
-    fi
-    openssl req -newkey "${openssl_key_type}" -nodes -keyout "${tmpdir}/keys/${domain}.key" -out "${tmpdir}/${domain}.csr" -sha256 -subj "/CN=${domain}/" -addext "subjectAltName=${san}" ${must_staple:+-addext 'tlsfeature = status_request'}
+    openssl req -newkey "${openssl_key_type}" -nodes -keyout "${tmpdir}/keys/${domain}.key" -out "${tmpdir}/${domain}.csr" -sha256 -subj "/CN=${domain}/" -addext "subjectAltName=${san}"
 }
 
 
@@ -172,11 +165,6 @@ for file in "${config_dir}"/*.conf; do
     if [[ -z "${profile}" ]]; then
         profile="$(get_from_config "${config_dir}/main.conf" profile)"
     fi
-    # must_staple: If set to 'true' a certificate with the 'must-staple' extension (RFC 6066) is requested.
-    must_staple="$(get_from_config "${file}" must_staple)"
-    if [[ -z "${must_staple}" ]]; then
-        must_staple="$(get_from_config "${config_dir}/main.conf" must_staple false)"
-    fi
     # alt_domains: Additional host or domain names to be added to the certificate in the Subject Alternative Name extensions.
     read -ra alt_domains < <(get_from_config "${file}" alt_domains)
     # key_type: Type and length of the key pair. Starts with the algorithm (rsa or ec) followed by the key length, e.g. ec256 or rsa4096.
@@ -230,12 +218,12 @@ for file in "${config_dir}"/*.conf; do
     fi
     if [[ ! -e "${crt_path}" ]]; then
         # There is no certificate for $domain. Generate a CSR.
-        generate_csr "${key_type}" "${must_staple}" "${domain}" "${alt_domains[@]}" || die "${E_CSR}" "Error: Could not generate CSR for ${domain}."
+        generate_csr "${key_type}" "${domain}" "${alt_domains[@]}" || die "${E_CSR}" "Error: Could not generate CSR for ${domain}."
         lego_args+=('--csr' "${tmpdir}/${domain}.csr" run)
     else
         if ! openssl x509 -checkend "$((min_validity * 24 * 60 * 60))" -noout -in "${crt_path}" >/dev/null; then
             # Certificate will expire within the next $min_validity days. Generate a CSR.
-            generate_csr "${key_type}" "${must_staple}" "${domain}" "${alt_domains[@]}" || die "${E_CSR}" "Error: Could not generate CSR for ${domain}."
+            generate_csr "${key_type}" "${domain}" "${alt_domains[@]}" || die "${E_CSR}" "Error: Could not generate CSR for ${domain}."
             lego_args+=('--csr' "${tmpdir}/${domain}.csr" renew '--days' "${min_validity}")
         else
             # Certificate is valid for (at least) another $min_validity days.
