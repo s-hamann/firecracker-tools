@@ -48,6 +48,10 @@ The following configuration options are supported:
 * `min_validity`  
   Minimum certificate validity in days. If a stored certificate will expire
   within this time, a new certificate is requested. Default value is `30`.
+* `profile`  
+  Name of the certificate profile to request.
+  Refer to the CA's documentation for a list of valid profile names.
+  When not set, the profile is selected by the CA.
 * `must_staple`  
   Set to `true` to request a certificate with the `must-staple` extension ([RFC
   6066](https://tools.ietf.org/html/rfc6066)). Default is `false`.

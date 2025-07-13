@@ -168,6 +168,10 @@ for file in "${config_dir}"/*.conf; do
     if [[ -z "${min_validity}" ]]; then
         min_validity="$(get_from_config "${config_dir}/main.conf" min_validity 30)"
     fi
+    profile="$(get_from_config "${file}" profile)"
+    if [[ -z "${profile}" ]]; then
+        profile="$(get_from_config "${config_dir}/main.conf" profile)"
+    fi
     # must_staple: If set to 'true' a certificate with the 'must-staple' extension (RFC 6066) is requested.
     must_staple="$(get_from_config "${file}" must_staple)"
     if [[ -z "${must_staple}" ]]; then
@@ -238,6 +242,9 @@ for file in "${config_dir}"/*.conf; do
             # Exit the subshell, i.e. continue with the next domain.
             exit 0
         fi
+    fi
+    if [[ -n "${profile}" ]]; then
+        lego_args+=('--profile' "${profile}")
     fi
 
     # Run lego.
