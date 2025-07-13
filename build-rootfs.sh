@@ -402,6 +402,17 @@ function build_image() {
     debug "${file}: Filesystem requires ${rootfs_size} MiB and ${rootfs_inodes} inodes (${rootfs_bytes_per_inode} bytes per inode)."
     case "${rootfs_type}" in
         ext2|ext3|ext4)
+            # For ext file systems, the number of inodes must be a multiple of something
+            # like:
+            # file_system_size / block_size ** 2, round up to a multiple of 8
+            # We don't know what block size the mkfs heuristic will pick, but it must
+            # be at least 1024, which also puts the greatest restriction on inode
+            # numbers. Hence, we calculate the number of required inodes based on this
+            # assumption.
+            # $rootfs_size is in MiB, the above formula in bytes. So, we can
+            # use $rootfs_size without further division.
+            ext_inode_step="$(( (((rootfs_size - 1) / 8) + 1) * 8 ))"
+            rootfs_bytes_per_inode="$(( rootfs_size * 1024 * 1024 / ((((rootfs_inodes + 32) / ext_inode_step) + 1) * ext_inode_step) ))"
             # Add some space for the inode table.
             # This assumes 256 byte inodes, which is the default as of e2fsprogs 1.46.4.
             (( rootfs_size+=((rootfs_size * 256 - 1) / rootfs_bytes_per_inode) + 1))
