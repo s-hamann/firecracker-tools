@@ -133,6 +133,8 @@ parser.add_argument('--cgroup', action='append',
 parser.add_argument('--resource-limit', action='append',
                     help='resource limit values to be set by the jailer. This argument can be '
                     'used multiple times and is passed to jailer as is.')
+parser.add_argument('--enable-pci', action='store_true', default=False,
+                    help='enable PCIe support')
 parser.add_argument('--daemonize', action='store_true', default=False,
                     help='run the VM in a background process')
 seccomp = parser.add_mutually_exclusive_group()
@@ -359,6 +361,8 @@ if args.resource_limit:
 if args.daemonize:
     jailer_cmd += ['--daemonize']
 jailer_cmd += ['--', '--config-file', 'config.json']
+if args.enable_pci:
+    jailer_cmd += ['--enable-pci']
 if args.no_seccomp:
     jailer_cmd += ['--no-seccomp']
 elif args.seccomp_filter:
