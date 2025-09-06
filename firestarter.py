@@ -182,7 +182,7 @@ with args.config.open('r') as f:
 if 'boot-source' not in config:
     # Add default boot-source section.
     config['boot-source'] = {'kernel_image_path': 'vmlinux-*',
-                             'boot_args': 'console=ttyS0 reboot=k panic=1 pci=off quiet'
+                             'boot_args': 'console=ttyS0 reboot=k panic=1 quiet'
                              ' i8042.noaux i8042.nomux i8042.dumbkbd'}
 
 # Generate a unique ID for the VM instance.
